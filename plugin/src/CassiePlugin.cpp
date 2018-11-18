@@ -343,8 +343,9 @@ void CassiePlugin::onUpdate()
         cassie_slrt_data_t slrt_data;   
         memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));
         slrt_data.outputs = output;
+        slrt_data.t = lastUpdateTime_.Double();
         // pack_cassie_out_t(&output, dataOutPtr_);
-        pack_cassie_slrt_data_t(dataOutPtr_, &slrt_data);
+        pack_cassie_slrt_data_t(&slrt_data, dataOutPtr_);
 
         // Send response
         send_packet(sock_, sendBuf_, SENDLEN,
