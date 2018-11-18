@@ -17,8 +17,10 @@
 #ifndef CASSIE_CORE_SIM_H
 #define CASSIE_CORE_SIM_H
 
-#include "cassie_user_in_t.h"
-#include "cassie_out_t.h"
+#include "cassie_slrt_data_t.h"
+#include "cassie_linux_data_t.h"
+// #include "cassie_user_in_t.h"
+// #include "cassie_out_t.h"
 #include "cassie_in_t.h"
 
 typedef struct CassieCoreSim cassie_core_sim_t;

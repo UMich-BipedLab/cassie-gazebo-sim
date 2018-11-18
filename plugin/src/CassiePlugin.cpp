@@ -304,6 +304,7 @@ void CassiePlugin::onUpdate()
     ssize_t nbytes = get_newest_packet(sock_, recvBuf_, RECVLEN,
                                        (struct sockaddr *) &srcAddr_,
                                        &addrLen_);
+    cassie_linux_data_t linux_data;
 
     // If a new packet was received, process and unpack it
     if (RECVLEN == nbytes) {
@@ -311,7 +312,9 @@ void CassiePlugin::onUpdate()
         process_packet_header(&headerInfo_, headerInPtr_, headerOutPtr_);
 
         // Unpack received data into cassie user input struct
-        unpack_cassie_user_in_t(dataInPtr_, &cassieUserIn_);
+        // unpack_cassie_user_in_t(dataInPtr_, &cassieUserIn_);
+        unpack_cassie_linux_data_t(dataInPtr_, &linux_data);
+        cassieUserIn_ = linux_data.userInputs;
 
         // Start running Cassie core after the first valid packet is received
         if (!runSim_) {
@@ -336,7 +339,12 @@ void CassiePlugin::onUpdate()
         updateCassieOut();
         lastUpdateTime_ += gazebo::common::Time(updatePeriod_);
 
-        pack_cassie_out_t(&output, dataOutPtr_);
+
+        cassie_slrt_data_t slrt_data;   
+        memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));
+        slrt_data.outputs = output;
+        // pack_cassie_out_t(&output, dataOutPtr_);
+        pack_cassie_slrt_data_t(dataOutPtr_, &slrt_data);
 
         // Send response
         send_packet(sock_, sendBuf_, SENDLEN,
