@@ -178,7 +178,7 @@
         <geometry>
           <box>
             <size>0.01 0.01 0.01</size>
-          </box>
+          </box>torque
         </geometry>
       </visual>
     </link>
@@ -1593,8 +1593,8 @@
       <axis>
         <xyz>0 0 1</xyz>
         <limit>
-          <lower>0.5</lower>
-          <upper>0.5</upper>
+          <lower>0.2</lower>
+          <upper>0.2</upper>
         </limit>
       </axis>
     </joint>

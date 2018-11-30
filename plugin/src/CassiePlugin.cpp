@@ -328,7 +328,7 @@ void CassiePlugin::onUpdate()
 
     // Detatch pelvis 5 seconds after receiving data
     if ((currentTime - firstPacketTime_).Double() > 5.0)
-       // detachPelvis();
+        //detachPelvis();
 
     if (runSim_) {
         // Run simulator and pack output struct into outgoing packet
