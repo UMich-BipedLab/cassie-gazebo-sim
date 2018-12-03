@@ -15,6 +15,7 @@
  */
 
 #include "CassiePlugin.hpp"
+#include <cmath>
 
 
 CassiePlugin::CassiePlugin() :
@@ -30,7 +31,14 @@ CassiePlugin::CassiePlugin() :
     jointFilterA_{1.0, -1.7658, 0.79045},
     cassieOut_{},
     headerInfo_{},
-    cassieUserIn_{}
+    cassieUserIn_{},
+    Kp_PD_{400, 200, 500, 500, 10, 400, 200, 500, 500, 10},
+    Kd_PD_{10, 4, 15, 15, 2, 10, 4, 15, 15, 2},
+    u_cont_beta_{50},
+    torque_discontinuity_threshold_{10},
+    u_cont_t0_{0},
+    torques_unmodified_prev_{0},
+    u_cont_alpha_{0}
 {
     // Pointers to each drive struct in cassieOut
     driveOut_ = {
@@ -68,6 +76,8 @@ CassiePlugin::CassiePlugin() :
     dataInPtr_ = &recvBuf_[PACKET_HEADER_LEN];
     headerOutPtr_ = sendBuf_;
     dataOutPtr_ = &sendBuf_[PACKET_HEADER_LEN];
+
+    memset(&slrt_data_prev_, 0, sizeof (cassie_slrt_data_t));
 
     runSim_ = false;
 }
@@ -314,7 +324,72 @@ void CassiePlugin::onUpdate()
         // Unpack received data into cassie user input struct
         // unpack_cassie_user_in_t(dataInPtr_, &cassieUserIn_);
         unpack_cassie_linux_data_t(dataInPtr_, &linux_data);
-        cassieUserIn_ = linux_data.userInputs;
+        if (linux_data.control.type == 1) // Position control
+        {
+            double jointPositions[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.position,
+                slrt_data_prev_.outputs.leftLeg.hipYawDrive.position,
+                slrt_data_prev_.outputs.leftLeg.hipPitchDrive.position,
+                slrt_data_prev_.outputs.leftLeg.kneeDrive.position,
+                slrt_data_prev_.outputs.leftLeg.footDrive.position,
+                slrt_data_prev_.outputs.rightLeg.hipRollDrive.position,
+                slrt_data_prev_.outputs.rightLeg.hipYawDrive.position,
+                slrt_data_prev_.outputs.rightLeg.hipPitchDrive.position,
+                slrt_data_prev_.outputs.rightLeg.kneeDrive.position,
+                slrt_data_prev_.outputs.rightLeg.footDrive.position};
+            double jointVelocities[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.velocity,
+                slrt_data_prev_.outputs.leftLeg.hipYawDrive.velocity,
+                slrt_data_prev_.outputs.leftLeg.hipPitchDrive.velocity,
+                slrt_data_prev_.outputs.leftLeg.kneeDrive.velocity,
+                slrt_data_prev_.outputs.leftLeg.footDrive.velocity,
+                slrt_data_prev_.outputs.rightLeg.hipRollDrive.velocity,
+                slrt_data_prev_.outputs.rightLeg.hipYawDrive.velocity,
+                slrt_data_prev_.outputs.rightLeg.hipPitchDrive.velocity,
+                slrt_data_prev_.outputs.rightLeg.kneeDrive.velocity,
+                slrt_data_prev_.outputs.rightLeg.footDrive.velocity};
+            for (unsigned int i = 0; i < 10; i++)
+            {
+                cassieUserIn_.torque[i] = Kp_PD_[i] * (linux_data.control.motorPositionsDesired[i] - jointPositions[i]) +
+                                        Kd_PD_[i] * (linux_data.control.motorVelocitiesDesired[i] - jointVelocities[i]);
+            }
+            for (unsigned int i = 0; i < 9; i++)
+            {
+                cassieUserIn_.telemetry[i] = linux_data.userInputs.telemetry[i];
+            }
+
+            // Torque smoothing
+            bool update_smoothing_flag = false;
+            for (unsigned int i = 0; i < 10; i++)
+            {
+                if (std::abs(cassieUserIn_.torque[i] - torques_unmodified_prev_[i]) > torque_discontinuity_threshold_)
+                {
+                    update_smoothing_flag = true;
+                    break;
+                }
+            }
+            if (update_smoothing_flag) // Reset sigmoid parameters
+            {
+                u_cont_t0_ = slrt_data_prev_.t;
+                for (unsigned int i = 0; i < 10; i++)
+                {
+                    u_cont_alpha_[i] = cassieUserIn_.torque[i] - torques_unmodified_prev_[i];
+                }
+            }
+            for (unsigned int i = 0; i < 10; i++)
+            {
+                torques_unmodified_prev_[i] = cassieUserIn_.torque[i];
+            }
+            for (unsigned int i = 0; i < 10; i++)
+            {
+                cassieUserIn_.torque[i] += -2*u_cont_alpha_[i]*(1 - 1/(1 + std::exp(-u_cont_beta_*(slrt_data_prev_.t - u_cont_t0_))));
+            }
+        }
+        else if (linux_data.control.type == 0) // Torque control
+        {
+            cassieUserIn_ = linux_data.userInputs;
+        }
+        else // ERROR
+        {
+        }
 
         // Start running Cassie core after the first valid packet is received
         if (!runSim_) {
@@ -350,6 +425,8 @@ void CassiePlugin::onUpdate()
         // Send response
         send_packet(sock_, sendBuf_, SENDLEN,
                     (struct sockaddr *) &srcAddr_, addrLen_);
+
+        slrt_data_prev_ = slrt_data;
     }
 }
 

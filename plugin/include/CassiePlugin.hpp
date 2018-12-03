@@ -82,6 +82,16 @@ class CassiePlugin : public gazebo::ModelPlugin {
     const std::array<int, 6> kJointBits_;
     const std::array<double, 10> kJointOffset_;
 
+    // PD controller properties
+    cassie_slrt_data_t slrt_data_prev_;
+    const double torque_discontinuity_threshold_;
+    double u_cont_t0_;
+    const double u_cont_beta_;
+    std::array<double, 10> torques_unmodified_prev_;
+    std::array<double, 10> u_cont_alpha_;
+    const std::array<double, 10> Kp_PD_;
+    const std::array<double, 10> Kd_PD_;
+
     // Pelvis pointer
     gazebo::physics::LinkPtr pelvisPtr_;
 
