@@ -18,6 +18,12 @@
   <model name="cassie">
     <self_collide>1</self_collide>
 
+    <link name='x'/>
+    <link name='y'/>
+    <link name='z'/>
+    <link name='yaw'/>
+    <link name='pitch'/>
+    
     <link name='pelvis'>
       <pose>0 0 1.01 0 0 0</pose>
       <inertial>
@@ -1587,7 +1593,7 @@
       </axis>
     </joint>
 
-    <joint name="static" type="prismatic">
+    <!--<joint name="static" type="prismatic">
       <parent>world</parent>
       <child>pelvis</child>
       <axis>
@@ -1595,6 +1601,78 @@
         <limit>
           <lower>0.2</lower>
           <upper>0.2</upper>
+        </limit>
+      </axis>
+    </joint>-->
+    
+    <joint name="x" type="prismatic">
+      <parent>world</parent>
+      <child>x</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.0</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="y" type="prismatic">
+      <parent>x</parent>
+      <child>y</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.0</upper>
+        </limit>
+      </axis>
+    </joint>
+  
+    <joint name="z" type="prismatic">
+      <parent>y</parent>
+      <child>z</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>0.2</lower>
+          <upper>0.2</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="yaw" type="revolute">
+      <parent>z</parent>
+      <child>yaw</child>
+      <axis>
+        <xyz>0 0 1</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.0</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="pitch" type="revolute">
+      <parent>yaw</parent>
+      <child>pitch</child>
+      <axis>
+        <xyz>0 1 0</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.0</upper>
+        </limit>
+      </axis>
+    </joint>
+
+    <joint name="roll" type="revolute">
+      <parent>pitch</parent>
+      <child>pelvis</child>
+      <axis>
+        <xyz>1 0 0</xyz>
+        <limit>
+          <lower>0.0</lower>
+          <upper>0.0</upper>
         </limit>
       </axis>
     </joint>

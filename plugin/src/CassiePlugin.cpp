@@ -295,6 +295,31 @@ void CassiePlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
 }
 
 
+void CassiePlugin::Reset() 
+{
+    // Fix pelvis to world
+    auto model = this->worldPtr_->ModelByName("cassie");
+    gazebo::physics::JointPtr x_joint = model->GetJoint("x");
+    gazebo::physics::JointPtr y_joint = model->GetJoint("y");
+    gazebo::physics::JointPtr z_joint = model->GetJoint("z");
+    gazebo::physics::JointPtr yaw_joint = model->GetJoint("yaw");
+    gazebo::physics::JointPtr pitch_joint = model->GetJoint("pitch");
+    x_joint->SetLowerLimit(0,0); 
+    x_joint->SetUpperLimit(0,0); 
+    y_joint->SetLowerLimit(0,0); 
+    y_joint->SetUpperLimit(0,0);
+    z_joint->SetLowerLimit(0,0.2); 
+    z_joint->SetUpperLimit(0,0.2);  
+    yaw_joint->SetLowerLimit(0,0); 
+    yaw_joint->SetUpperLimit(0,0); 
+    pitch_joint->SetLowerLimit(0,0); 
+    pitch_joint->SetUpperLimit(0,0); 
+    static_joint_attached_ = true;
+    // Reset simulation flag
+    runSim_ = false;
+}
+
+
 void CassiePlugin::onUpdate()
 {
     // Get current time and calculate last update time
@@ -401,9 +426,18 @@ void CassiePlugin::onUpdate()
         lastPacketTime_ = currentTime;
     }
 
-    // Detatch pelvis 5 seconds after receiving data
-    if ((currentTime - firstPacketTime_).Double() > 5.0)
-        //detachPelvis();
+    // Slowly lower and detach robot for easy initialization
+    const double LOWER_TIME = 1.0;
+    const double DETACH_TIME = 3.0;
+    if (static_joint_attached_) {
+        if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
+            // Lower pelvis 1 seconds after receiving data
+            lowerPelvis();
+        } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
+            // Detatch pelvis 5 seconds after receiving data
+            detachPelvis();
+        }
+    }
 
     if (runSim_) {
         // Run simulator and pack output struct into outgoing packet
@@ -502,9 +536,32 @@ void CassiePlugin::applyTorques(const cassie_in_t *cassieIn)
 
 void CassiePlugin::detachPelvis()
 {
-    this->worldPtr_->ModelByName("cassie")->RemoveJoint("static");
+    // Set large limits to effectively detach
+    auto model = this->worldPtr_->ModelByName("cassie");
+    gazebo::physics::JointPtr x_joint = model->GetJoint("x");
+    gazebo::physics::JointPtr y_joint = model->GetJoint("y");
+    gazebo::physics::JointPtr z_joint = model->GetJoint("z");
+    gazebo::physics::JointPtr yaw_joint = model->GetJoint("yaw");
+    gazebo::physics::JointPtr pitch_joint = model->GetJoint("pitch");
+    x_joint->SetLowerLimit(0,-1000); 
+    x_joint->SetUpperLimit(0,1000); 
+    y_joint->SetLowerLimit(0,-1000); 
+    y_joint->SetUpperLimit(0,1000);
+    z_joint->SetLowerLimit(0,-1000); 
+    z_joint->SetUpperLimit(0,1000);  
+    yaw_joint->SetLowerLimit(0,-1000); 
+    yaw_joint->SetUpperLimit(0,1000); 
+    pitch_joint->SetLowerLimit(0,-1000); 
+    pitch_joint->SetUpperLimit(0,1000); 
+    static_joint_attached_ = false;
 }
 
+void CassiePlugin::lowerPelvis()
+{   
+    // Lower by small amount each timestep
+    gazebo::physics::JointPtr joint = this->worldPtr_->ModelByName("cassie")->GetJoint("z");
+    joint->SetLowerLimit(0,joint->LowerLimit()-0.0005); 
+}
 
 // Register plugin with Gazebo
 GZ_REGISTER_MODEL_PLUGIN(CassiePlugin)

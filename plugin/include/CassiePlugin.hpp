@@ -24,6 +24,7 @@
 #include <gazebo/common/Plugin.hh>
 #include <gazebo/common/common.hh>
 #include <ignition/math.hh>
+// #include "ros/ros.h"
 
 #include "cassie_core_sim.h"
 #include "udp.h"
@@ -94,6 +95,9 @@ class CassiePlugin : public gazebo::ModelPlugin {
 
     // Pelvis pointer
     gazebo::physics::LinkPtr pelvisPtr_;
+
+    // Flag that specifies if the static joint is attached
+    bool static_joint_attached_ = true;
 
     // Latency buffer for cassie out
     cassie_out_t cassieOut_;
@@ -191,6 +195,11 @@ class CassiePlugin : public gazebo::ModelPlugin {
     virtual void Load(gazebo::physics::ModelPtr _model, sdf::ElementPtr _sdf);
 
     /**
+     * @brief Reset is called when the world is reset
+     */
+    virtual void Reset();
+
+    /**
      * @brief onUpdate is called after every simulation update
      */
     void onUpdate();
@@ -210,6 +219,11 @@ class CassiePlugin : public gazebo::ModelPlugin {
      * @brief detachPelvis detaches the pelvis from the world
      */
     void detachPelvis();
+
+    /**
+     * @brief lowerPelvis lowers the pelvis from the world
+     */
+    void lowerPelvis();
 
 public:
     /**
