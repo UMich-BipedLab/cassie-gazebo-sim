@@ -342,8 +342,6 @@ void CassiePlugin::onUpdate()
     cassie_linux_data_t linux_data;
 
     // If a new packet was received, process and unpack it
-    std::cout << "nbytes: " << nbytes << std::endl;
-    std::cout << "RECVLEN: " << RECVLEN << std::endl;
     if (RECVLEN == nbytes) {
         // Process incoming header and write outgoing header
         process_packet_header(&headerInfo_, headerInPtr_, headerOutPtr_);
@@ -443,11 +441,7 @@ void CassiePlugin::onUpdate()
         }
     }
 
-    std::cout << "Not Connected\n";
     if (runSim_) {
-        for (unsigned int i = 0; i < 10; i++)
-            std::cout << cassieUserIn_.torque[i] << " ";
-        std::cout << std::endl;
 
         // Run simulator and pack output struct into outgoing packet
         cassie_in_t cassieIn;
