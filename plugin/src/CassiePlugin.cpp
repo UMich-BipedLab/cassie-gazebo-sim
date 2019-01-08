@@ -342,6 +342,8 @@ void CassiePlugin::onUpdate()
     cassie_linux_data_t linux_data;
 
     // If a new packet was received, process and unpack it
+    std::cout << "nbytes: " << nbytes << std::endl;
+    std::cout << "RECVLEN: " << RECVLEN << std::endl;
     if (RECVLEN == nbytes) {
         // Process incoming header and write outgoing header
         process_packet_header(&headerInfo_, headerInPtr_, headerOutPtr_);
@@ -427,19 +429,26 @@ void CassiePlugin::onUpdate()
     }
 
     // Slowly lower and detach robot for easy initialization
-    const double LOWER_TIME = 1.0;
-    const double DETACH_TIME = 3.0;
-    if (static_joint_attached_) {
-        if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
-            // Lower pelvis 1 seconds after receiving data
-            lowerPelvis();
-        } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
-            // Detatch pelvis 5 seconds after receiving data
-            detachPelvis();
+    if (runSim_) {
+        const double LOWER_TIME = 1.0;
+        const double DETACH_TIME = 3.0;
+        if (static_joint_attached_) {
+            if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
+                // Lower pelvis 1 seconds after receiving data
+                lowerPelvis();
+            } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
+                // Detatch pelvis 5 seconds after receiving data
+                detachPelvis();
+            }
         }
     }
 
+    std::cout << "Not Connected\n";
     if (runSim_) {
+        for (unsigned int i = 0; i < 10; i++)
+            std::cout << cassieUserIn_.torque[i] << " ";
+        std::cout << std::endl;
+
         // Run simulator and pack output struct into outgoing packet
         cassie_in_t cassieIn;
         cassie_out_t output = cassieOut_;
