@@ -61,11 +61,11 @@
           <noise>
             <type>gaussian</type>
             <mean>0.0</mean>
-            <stddev>0.1</stddev>
+            <stddev>0.03</stddev>
           </noise>
           <scan>
             <horizontal>
-              <samples>1875</samples>
+              <samples>1800</samples>
               <resolution>1</resolution>
               <min_angle>-3.14159265</min_angle>
               <max_angle>3.14159265</max_angle>
@@ -88,64 +88,64 @@
           <frameName>/velodyne</frameName>
           <min_range>0.9</min_range>
           <max_range>130</max_range>
-          <gaussianNoise>0.008</gaussianNoise>
+          <gaussianNoise>0.03</gaussianNoise>
         </plugin>
       </sensor>
     </link>
 
     <link name='tilted_lidar'>
       <pose>0.1182 0 1.4006 0 0.65 0</pose>
-        <sensor type="ray" name="ouster_lidar">
-          <visualize>false</visualize>
-          <always_on>true</always_on>
-          <update_rate>10</update_rate>
-          <ray>
-            <noise>
-              <type>gaussian</type>
-              <mean>0.0</mean>
-              <stddev>0.1</stddev>
-            </noise>
-            <scan>
-              <horizontal>
-                <samples>2048</samples>
-                <resolution>1</resolution>
-                <min_angle>-3.14159265</min_angle>
-                <max_angle>3.14159265</max_angle>
-              </horizontal>
-              <vertical>
-                <samples>64</samples>
-                <resolution>1</resolution>
-                <min_angle>-0.289724656</min_angle>
-                <max_angle>0.289724656</max_angle>
-              </vertical>
-            </scan>
-            <range>
-              <min>0.5</min>
-              <max>120</max>
-              <resolution>0.02</resolution>
-            </range>
-          </ray>
-          <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_laser.so">
-            <topicName>/os1_points</topicName>
-            <frameName>/os1</frameName>
-            <min_range>0.9</min_range>
-            <max_range>130</max_range>
-            <gaussianNoise>0.008</gaussianNoise>
-          </plugin>
-        </sensor>
+      <sensor type="ray" name="ouster_lidar">
+        <visualize>false</visualize>
+        <always_on>true</always_on>
+        <update_rate>10</update_rate>
+        <ray>
+          <noise>
+            <type>gaussian</type>
+            <mean>0.0</mean>
+            <stddev>0.05</stddev>
+          </noise>
+          <scan>
+            <horizontal>
+              <samples>2048</samples>
+              <resolution>1</resolution>
+              <min_angle>-3.14159265</min_angle>
+              <max_angle>3.14159265</max_angle>
+            </horizontal>
+            <vertical>
+              <samples>64</samples>
+              <resolution>1</resolution>
+              <min_angle>-0.275762</min_angle>
+              <max_angle>0.275762</max_angle>
+            </vertical>
+          </scan>
+          <range>
+            <min>0.5</min>
+            <max>120</max>
+            <resolution>0.012</resolution>
+          </range>
+        </ray>
+        <plugin name="gazebo_ros_laser_controller" filename="libgazebo_ros_velodyne_laser.so">
+          <topicName>/os1_node/points</topicName>
+          <frameName>/os1</frameName>
+          <min_range>0.9</min_range>
+          <max_range>130</max_range>
+          <gaussianNoise>0.05</gaussianNoise>
+        </plugin>
+      </sensor>
       <sensor name="imu_sensor" type="imu">
         <pose>0 0 0 0 0 0</pose>
         <always_on>true</always_on>
         <update_rate>100</update_rate>
         <visualize>true</visualize>
         <plugin filename="libgazebo_ros_imu_sensor.so" name="ouster_imu_plugin">
-          <topicName>/os1/imu</topicName>
+          <topicName>/os1_node/imu</topicName>
           <bodyName>tilted_lidar</bodyName>
           <updateRateHZ>10.0</updateRateHZ>
           <gaussianNoise>0.0</gaussianNoise>
           <xyzOffset>0 0 0</xyzOffset>
           <rpyOffset>0 0 0</rpyOffset>
-          <frameName>tilted_lidar</frameName>
+          <frameName>/os1</frameName>
         </plugin>
       </sensor>
     </link>
@@ -178,7 +178,7 @@
           <depthImageTopicName>/camera1/depth/image_raw</depthImageTopicName>
           <depthImageInfoTopicName>/camera1/depth/camera_info</depthImageInfoTopicName>
           <pointCloudTopicName>/camera1/depth/points</pointCloudTopicName>
-          <frameName>camera1</frameName>
+          <frameName>/camera1_link</frameName>
           <pointCloudCutoff>0.05</pointCloudCutoff>
           <distortionK1>0</distortionK1>
           <distortionK2>0</distortionK2>
@@ -222,7 +222,7 @@
           <depthImageTopicName>/camera2/depth/image_raw</depthImageTopicName>
           <depthImageInfoTopicName>/camera2/depth/camera_info</depthImageInfoTopicName>
           <pointCloudTopicName>/camera2/depth/points</pointCloudTopicName>
-          <frameName>camera2</frameName>
+          <frameName>/camera2_link</frameName>
           <pointCloudCutoff>0.05</pointCloudCutoff>
           <distortionK1>0</distortionK1>
           <distortionK2>0</distortionK2>
