@@ -25,6 +25,9 @@
 #include <gazebo/common/common.hh>
 #include <ignition/math.hh>
 // #include "ros/ros.h"
+#include "De_cassie.h"
+#include "Ce_cassie.h"
+#include "Ge_cassie.h"
 
 #include "cassie_core_sim.h"
 #include "udp.h"
@@ -36,6 +39,7 @@
 #define JOINT_FILTER_NB 4
 #define JOINT_FILTER_NA 3
 
+enum ControlType { Torque=0, Position=1, Position_GC=2, Position_ID=3 };
 
 /**
  * @brief The CassiePlugin class contains vars and methods used by
@@ -224,6 +228,16 @@ class CassiePlugin : public gazebo::ModelPlugin {
      * @brief lowerPelvis lowers the pelvis from the world
      */
     void lowerPelvis();
+
+    /**
+     * @brief lowLevelController low-level controller (several options)
+     */
+    void lowLevelController(cassie_linux_data_t* linux_data);
+
+    /**
+     * @brief safetyController modifies torques to maintain safety
+     */
+    void safetyController();
 
 public:
     /**

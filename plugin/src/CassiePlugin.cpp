@@ -35,7 +35,7 @@ CassiePlugin::CassiePlugin() :
     Kp_PD_{400, 200, 500, 500, 10, 400, 200, 500, 500, 10},
     Kd_PD_{10, 4, 15, 15, 2, 10, 4, 15, 15, 2},
     u_cont_beta_{50},
-    torque_discontinuity_threshold_{10},
+    torque_discontinuity_threshold_{50},
     u_cont_t0_{0},
     torques_unmodified_prev_{0},
     u_cont_alpha_{0}
@@ -349,72 +349,6 @@ void CassiePlugin::onUpdate()
         // Unpack received data into cassie user input struct
         // unpack_cassie_user_in_t(dataInPtr_, &cassieUserIn_);
         unpack_cassie_linux_data_t(dataInPtr_, &linux_data);
-        if (linux_data.control.type == 1) // Position control
-        {
-            double jointPositions[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.position,
-                slrt_data_prev_.outputs.leftLeg.hipYawDrive.position,
-                slrt_data_prev_.outputs.leftLeg.hipPitchDrive.position,
-                slrt_data_prev_.outputs.leftLeg.kneeDrive.position,
-                slrt_data_prev_.outputs.leftLeg.footDrive.position,
-                slrt_data_prev_.outputs.rightLeg.hipRollDrive.position,
-                slrt_data_prev_.outputs.rightLeg.hipYawDrive.position,
-                slrt_data_prev_.outputs.rightLeg.hipPitchDrive.position,
-                slrt_data_prev_.outputs.rightLeg.kneeDrive.position,
-                slrt_data_prev_.outputs.rightLeg.footDrive.position};
-            double jointVelocities[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.velocity,
-                slrt_data_prev_.outputs.leftLeg.hipYawDrive.velocity,
-                slrt_data_prev_.outputs.leftLeg.hipPitchDrive.velocity,
-                slrt_data_prev_.outputs.leftLeg.kneeDrive.velocity,
-                slrt_data_prev_.outputs.leftLeg.footDrive.velocity,
-                slrt_data_prev_.outputs.rightLeg.hipRollDrive.velocity,
-                slrt_data_prev_.outputs.rightLeg.hipYawDrive.velocity,
-                slrt_data_prev_.outputs.rightLeg.hipPitchDrive.velocity,
-                slrt_data_prev_.outputs.rightLeg.kneeDrive.velocity,
-                slrt_data_prev_.outputs.rightLeg.footDrive.velocity};
-            for (unsigned int i = 0; i < 10; i++)
-            {
-                cassieUserIn_.torque[i] = Kp_PD_[i] * (linux_data.control.motorPositionsDesired[i] - jointPositions[i]) +
-                                        Kd_PD_[i] * (linux_data.control.motorVelocitiesDesired[i] - jointVelocities[i]);
-            }
-            for (unsigned int i = 0; i < 9; i++)
-            {
-                cassieUserIn_.telemetry[i] = linux_data.userInputs.telemetry[i];
-            }
-
-            // Torque smoothing
-            bool update_smoothing_flag = false;
-            for (unsigned int i = 0; i < 10; i++)
-            {
-                if (std::abs(cassieUserIn_.torque[i] - torques_unmodified_prev_[i]) > torque_discontinuity_threshold_)
-                {
-                    update_smoothing_flag = true;
-                    break;
-                }
-            }
-            if (update_smoothing_flag) // Reset sigmoid parameters
-            {
-                u_cont_t0_ = slrt_data_prev_.t;
-                for (unsigned int i = 0; i < 10; i++)
-                {
-                    u_cont_alpha_[i] = cassieUserIn_.torque[i] - torques_unmodified_prev_[i];
-                }
-            }
-            for (unsigned int i = 0; i < 10; i++)
-            {
-                torques_unmodified_prev_[i] = cassieUserIn_.torque[i];
-            }
-            for (unsigned int i = 0; i < 10; i++)
-            {
-                cassieUserIn_.torque[i] += -2*u_cont_alpha_[i]*(1 - 1/(1 + std::exp(-u_cont_beta_*(slrt_data_prev_.t - u_cont_t0_))));
-            }
-        }
-        else if (linux_data.control.type == 0) // Torque control
-        {
-            cassieUserIn_ = linux_data.userInputs;
-        }
-        else // ERROR
-        {
-        }
 
         // Start running Cassie core after the first valid packet is received
         if (!runSim_) {
@@ -426,22 +360,22 @@ void CassiePlugin::onUpdate()
         lastPacketTime_ = currentTime;
     }
 
-    // Slowly lower and detach robot for easy initialization
     if (runSim_) {
-        const double LOWER_TIME = 1.0;
-        const double DETACH_TIME = 3.0;
-        if (static_joint_attached_) {
-            if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
-                // Lower pelvis 1 seconds after receiving data
-                lowerPelvis();
-            } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
-                // Detatch pelvis 5 seconds after receiving data
-                detachPelvis();
-            }
-        }
-    }
-
-    if (runSim_) {
+        // // Slowly lower and detach robot for easy initialization
+        // const double LOWER_TIME = 1.0;
+        // const double DETACH_TIME = 3.0;
+        // if (static_joint_attached_) {
+        //     if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
+        //         // Lower pelvis 1 seconds after receiving data
+        //         lowerPelvis();
+        //     } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
+        //         // Detatch pelvis 5 seconds after receiving data
+        //         detachPelvis();
+        //     }
+        // }
+    
+        // Call low-level controller
+        lowLevelController(&linux_data);
 
         // Run simulator and pack output struct into outgoing packet
         cassie_in_t cassieIn;
@@ -537,8 +471,7 @@ void CassiePlugin::applyTorques(const cassie_in_t *cassieIn)
 }
 
 
-void CassiePlugin::detachPelvis()
-{
+void CassiePlugin::detachPelvis() {
     // Set large limits to effectively detach
     auto model = this->worldPtr_->ModelByName("cassie");
     gazebo::physics::JointPtr x_joint = model->GetJoint("x");
@@ -559,11 +492,164 @@ void CassiePlugin::detachPelvis()
     static_joint_attached_ = false;
 }
 
-void CassiePlugin::lowerPelvis()
-{   
+
+void CassiePlugin::lowerPelvis() {   
     // Lower by small amount each timestep
     gazebo::physics::JointPtr joint = this->worldPtr_->ModelByName("cassie")->GetJoint("z");
     joint->SetLowerLimit(0,joint->LowerLimit()-0.0005); 
+}
+
+
+void CassiePlugin::lowLevelController(cassie_linux_data_t* linux_data){
+    // Store default user inputs
+    cassieUserIn_ = linux_data->userInputs;
+
+    // Extract motor positions and velocities
+    double jointPositions[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.position,
+        slrt_data_prev_.outputs.leftLeg.hipYawDrive.position,
+        slrt_data_prev_.outputs.leftLeg.hipPitchDrive.position,
+        slrt_data_prev_.outputs.leftLeg.kneeDrive.position,
+        slrt_data_prev_.outputs.leftLeg.footDrive.position,
+        slrt_data_prev_.outputs.rightLeg.hipRollDrive.position,
+        slrt_data_prev_.outputs.rightLeg.hipYawDrive.position,
+        slrt_data_prev_.outputs.rightLeg.hipPitchDrive.position,
+        slrt_data_prev_.outputs.rightLeg.kneeDrive.position,
+        slrt_data_prev_.outputs.rightLeg.footDrive.position};
+    double jointVelocities[10] = {slrt_data_prev_.outputs.leftLeg.hipRollDrive.velocity,
+        slrt_data_prev_.outputs.leftLeg.hipYawDrive.velocity,
+        slrt_data_prev_.outputs.leftLeg.hipPitchDrive.velocity,
+        slrt_data_prev_.outputs.leftLeg.kneeDrive.velocity,
+        slrt_data_prev_.outputs.leftLeg.footDrive.velocity,
+        slrt_data_prev_.outputs.rightLeg.hipRollDrive.velocity,
+        slrt_data_prev_.outputs.rightLeg.hipYawDrive.velocity,
+        slrt_data_prev_.outputs.rightLeg.hipPitchDrive.velocity,
+        slrt_data_prev_.outputs.rightLeg.kneeDrive.velocity,
+        slrt_data_prev_.outputs.rightLeg.footDrive.velocity};
+
+    // Store state in eigen form
+    Eigen::Matrix<double,20,1> q, dq;
+
+    // Set robot's pose using estimated state
+    q(0) = linux_data->state.q[0];
+    q(1) = linux_data->state.q[1];
+    q(2) = linux_data->state.q[2];
+    q(3) = linux_data->state.q[3];
+    q(4) = linux_data->state.q[4];
+    q(5) = linux_data->state.q[5];
+    // Set encoders left leg (using potentially higher frequency encoder feedback)
+    q(6) = slrt_data_prev_.outputs.leftLeg.hipRollDrive.position; 
+    q(7) = slrt_data_prev_.outputs.leftLeg.hipYawDrive.position;
+    q(8) = slrt_data_prev_.outputs.leftLeg.hipPitchDrive.position;
+    q(9) = slrt_data_prev_.outputs.leftLeg.kneeDrive.position;
+    q(10) = slrt_data_prev_.outputs.leftLeg.shinJoint.position;
+    q(11) = slrt_data_prev_.outputs.leftLeg.tarsusJoint.position;
+    q(12) = slrt_data_prev_.outputs.leftLeg.footDrive.position;
+    // Set encoders right leg (using potentially higher frequency encoder feedback)
+    q(13) = slrt_data_prev_.outputs.rightLeg.hipRollDrive.position;
+    q(14) = slrt_data_prev_.outputs.rightLeg.hipYawDrive.position;
+    q(15) = slrt_data_prev_.outputs.rightLeg.hipPitchDrive.position;
+    q(16) = slrt_data_prev_.outputs.rightLeg.kneeDrive.position;
+    q(17) = slrt_data_prev_.outputs.rightLeg.shinJoint.position;
+    q(18) = slrt_data_prev_.outputs.rightLeg.tarsusJoint.position;
+    q(19) = slrt_data_prev_.outputs.rightLeg.footDrive.position;
+
+    // Set robot's pose velocity using estimated state
+    dq(0) = linux_data->state.dq[0];
+    dq(1) = linux_data->state.dq[1];
+    dq(2) = linux_data->state.dq[2];
+    dq(3) = linux_data->state.dq[3];
+    dq(4) = linux_data->state.dq[4];
+    dq(5) = linux_data->state.dq[5];
+    // Set encoder velocities left leg (using potentially higher frequency encoder feedback)
+    dq(6) = slrt_data_prev_.outputs.leftLeg.hipRollDrive.velocity;
+    dq(7) = slrt_data_prev_.outputs.leftLeg.hipYawDrive.velocity;
+    dq(8) = slrt_data_prev_.outputs.leftLeg.hipPitchDrive.velocity;
+    dq(9) = slrt_data_prev_.outputs.leftLeg.kneeDrive.velocity;
+    dq(10) = slrt_data_prev_.outputs.leftLeg.shinJoint.velocity;
+    dq(11) = slrt_data_prev_.outputs.leftLeg.tarsusJoint.velocity;
+    dq(12) = slrt_data_prev_.outputs.leftLeg.footDrive.velocity;
+    // Set encoder velocities right leg (using potentially higher frequency encoder feedback)
+    dq(13) = slrt_data_prev_.outputs.rightLeg.hipRollDrive.velocity;
+    dq(14) = slrt_data_prev_.outputs.rightLeg.hipYawDrive.velocity;
+    dq(15) = slrt_data_prev_.outputs.rightLeg.hipPitchDrive.velocity;
+    dq(16) = slrt_data_prev_.outputs.rightLeg.kneeDrive.velocity;
+    dq(17) = slrt_data_prev_.outputs.rightLeg.shinJoint.velocity;
+    dq(18) = slrt_data_prev_.outputs.rightLeg.tarsusJoint.velocity;
+    dq(19) = slrt_data_prev_.outputs.rightLeg.footDrive.velocity;
+
+    // Choose control type
+    switch (linux_data->control.type) {
+        case ControlType::Torque: {
+            for (unsigned int i = 0; i < 10; i++) {
+                cassieUserIn_.torque[i] = linux_data->userInputs.torque[i];
+            }
+            break;
+        }
+        case ControlType::Position: {
+            for (unsigned int i = 0; i < 10; i++) {
+                cassieUserIn_.torque[i] = Kp_PD_[i] * (linux_data->control.motorPositionsDesired[i] - jointPositions[i]) +
+                                          Kd_PD_[i] * (linux_data->control.motorVelocitiesDesired[i] - jointVelocities[i]);
+            }
+            break;
+        }
+        case ControlType::Position_GC: {
+            Eigen::Matrix<double,20,1> G = Ge_cassie(q);
+            Eigen::Matrix<double,10,20> Bpinv = Eigen::Matrix<double,10,20>::Zero();
+            Bpinv(0,6) = 1;
+            Bpinv(1,7) = 1;
+            Bpinv(2,8) = 1;
+            Bpinv(3,9) = 1;
+            Bpinv(4,12) = 1;
+            Bpinv(5,13) = 1;
+            Bpinv(6,14) = 1;
+            Bpinv(7,15) = 1;
+            Bpinv(8,16) = 1;
+            Bpinv(9,19) = 1;
+            Eigen::Matrix<double,10,1> uff = Bpinv*G;
+            // std::cout << "uff:\n" << uff << "\n\n";
+
+            std::cout << "ControlType::Position_GC not working yet!!!!!\n";
+            std::cout << "ufb:\n";
+            for (unsigned int i = 0; i < 10; i++) {
+                cassieUserIn_.torque[i] = 0*uff(i) + 
+                                          0*Kp_PD_[i] * (linux_data->control.motorPositionsDesired[i] - jointPositions[i]) +
+                                          0*Kd_PD_[i] * (linux_data->control.motorVelocitiesDesired[i] - jointVelocities[i]);
+                std::cout << cassieUserIn_.torque[i] << "\n";
+            }
+            std::cout << "\n\n";
+            break;
+        }
+        default: {
+            // Error
+        }
+    }
+    
+    // Call safety controller (modifies torques)
+    // safetyController();
+}
+
+
+void CassiePlugin::safetyController(){
+    // Torque smoothing
+    bool update_smoothing_flag = false;
+    for (unsigned int i = 0; i < 10; i++) {
+        if (std::abs(cassieUserIn_.torque[i] - torques_unmodified_prev_[i]) > torque_discontinuity_threshold_) {
+            update_smoothing_flag = true;
+            break;
+        }
+    }
+    if (update_smoothing_flag) { // Reset sigmoid parameters
+        u_cont_t0_ = slrt_data_prev_.t;
+        for (unsigned int i = 0; i < 10; i++){
+            u_cont_alpha_[i] = cassieUserIn_.torque[i] - torques_unmodified_prev_[i];
+        }
+    }
+    for (unsigned int i = 0; i < 10; i++){
+        torques_unmodified_prev_[i] = cassieUserIn_.torque[i];
+    }
+    for (unsigned int i = 0; i < 10; i++){
+        cassieUserIn_.torque[i] += -2*u_cont_alpha_[i]*(1 - 1/(1 + std::exp(-u_cont_beta_*(slrt_data_prev_.t - u_cont_t0_))));
+    }
 }
 
 // Register plugin with Gazebo
