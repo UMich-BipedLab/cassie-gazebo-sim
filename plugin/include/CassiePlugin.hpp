@@ -40,6 +40,7 @@
 #define JOINT_FILTER_NA 3
 
 enum ControlType { Torque=0, Position=1, Position_GC=2, Position_ID=3 };
+enum RadioButtons { LV, LH, RV, RH, S1, S2, LS, RS, SA, SB, SC, SD, SE, SF, SG, SH };
 
 /**
  * @brief The CassiePlugin class contains vars and methods used by

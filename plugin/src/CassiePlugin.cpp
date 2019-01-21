@@ -385,9 +385,11 @@ void CassiePlugin::onUpdate()
         updateCassieOut();
         lastUpdateTime_ += gazebo::common::Time(updatePeriod_);
 
+        // FILL THIS IN WITH KEYBOARD INPUT
+        // output.pelvis.radio.channel[RadioButtons::LS] = 
 
         cassie_slrt_data_t slrt_data;   
-        memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));
+        memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));        
         slrt_data.outputs = output;
         slrt_data.t = lastUpdateTime_.Double();
         // pack_cassie_out_t(&output, dataOutPtr_);
