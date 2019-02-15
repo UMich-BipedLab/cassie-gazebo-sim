@@ -16,7 +16,10 @@
 
 #include "CassiePlugin.hpp"
 #include <cmath>
-
+// For reading keyboard
+// #include "/opt/ros/kinetic/include/std_msgs/Int16.h"
+#include <stdio.h>
+#include <stdlib.h>
 
 CassiePlugin::CassiePlugin() :
     kMotorBits_{13, 13, 13, 13, 18, 13, 13, 13, 13, 18},
@@ -253,7 +256,6 @@ void CassiePlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
 {
     // Store a pointer to the world
     this->worldPtr_ = model->GetWorld();
-
     // Store pointers to each model joint corresponding to a motor output
     motor_ = {
         model->GetJoint("left-roll-op"),
@@ -292,6 +294,13 @@ void CassiePlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
     // Listen to the update event which is broadcast every simulation iteration
     this->updateConnectionPtr_ = gazebo::event::Events::ConnectWorldUpdateBegin(
         std::bind(&CassiePlugin::onUpdate, this));
+
+    // Start thread
+    std::cout<<"start\n";
+    std::thread inthread(&KeyboardInput::getInput, &keyboard_);
+    inthread.detach();
+    std::cout<<"end\n";
+
 }
 
 
@@ -321,7 +330,7 @@ void CassiePlugin::Reset()
 
 
 void CassiePlugin::onUpdate()
-{
+{   
     // Get current time and calculate last update time
     auto currentTime = worldPtr_->SimTime();
     auto secondsSinceLastUpdate = (currentTime - lastUpdateTime_).Double();
@@ -359,7 +368,7 @@ void CassiePlugin::onUpdate()
         // Record time
         lastPacketTime_ = currentTime;
     }
-
+    
     if (runSim_) {
         // // Slowly lower and detach robot for easy initialization
         // const double LOWER_TIME = 1.0;
@@ -373,7 +382,6 @@ void CassiePlugin::onUpdate()
         //         detachPelvis();
         //     }
         // }
-    
         // Call low-level controller
         lowLevelController(&linux_data);
 
@@ -385,8 +393,41 @@ void CassiePlugin::onUpdate()
         updateCassieOut();
         lastUpdateTime_ += gazebo::common::Time(updatePeriod_);
 
-        // FILL THIS IN WITH KEYBOARD INPUT
-        // output.pelvis.radio.channel[RadioButtons::LS] = 
+        // Get simulated input from keyboard
+        // LV, LH, RV, RH, S1, S2, LS, RS, SA, SB, SC, SD, SE, SF, SG, SH 
+        output.pelvis.radio.channel[RadioButtons::LV] = keyboard_.LV();
+        output.pelvis.radio.channel[RadioButtons::LH] = keyboard_.LH();
+        output.pelvis.radio.channel[RadioButtons::RV] = keyboard_.RV();
+        output.pelvis.radio.channel[RadioButtons::RH] = keyboard_.RH();
+        output.pelvis.radio.channel[RadioButtons::S1] = keyboard_.S1();
+        output.pelvis.radio.channel[RadioButtons::S2] = keyboard_.S2();
+        output.pelvis.radio.channel[RadioButtons::LS] = keyboard_.LS();
+        output.pelvis.radio.channel[RadioButtons::RS] = keyboard_.RS();
+        output.pelvis.radio.channel[RadioButtons::SA] = keyboard_.SA();
+        output.pelvis.radio.channel[RadioButtons::SB] = keyboard_.SB();
+        output.pelvis.radio.channel[RadioButtons::SC] = keyboard_.SC();
+        output.pelvis.radio.channel[RadioButtons::SD] = keyboard_.SD();
+        output.pelvis.radio.channel[RadioButtons::SE] = keyboard_.SE();
+        output.pelvis.radio.channel[RadioButtons::SF] = keyboard_.SF();
+        output.pelvis.radio.channel[RadioButtons::SG] = keyboard_.SG();
+        output.pelvis.radio.channel[RadioButtons::SH] = keyboard_.SH();
+        // print out current radio value
+        std::cout<<"LV="<<output.pelvis.radio.channel[RadioButtons::LV]<<"\n";
+        std::cout<<"LH="<<output.pelvis.radio.channel[RadioButtons::LH]<<"\n";
+        std::cout<<"RV="<<output.pelvis.radio.channel[RadioButtons::RV]<<"\n";
+        std::cout<<"RH="<<output.pelvis.radio.channel[RadioButtons::RH]<<"\n";
+        std::cout<<"S1="<<output.pelvis.radio.channel[RadioButtons::S1]<<"\n";
+        std::cout<<"S2="<<output.pelvis.radio.channel[RadioButtons::S2]<<"\n";
+        std::cout<<"LS="<<output.pelvis.radio.channel[RadioButtons::LS]<<"\n";
+        std::cout<<"RS="<<output.pelvis.radio.channel[RadioButtons::RS]<<"\n";
+        std::cout<<"SA="<<output.pelvis.radio.channel[RadioButtons::SA]<<"\n";
+        std::cout<<"SB="<<output.pelvis.radio.channel[RadioButtons::SB]<<"\n";
+        std::cout<<"SC="<<output.pelvis.radio.channel[RadioButtons::SC]<<"\n";
+        std::cout<<"SD="<<output.pelvis.radio.channel[RadioButtons::SD]<<"\n";
+        std::cout<<"SE="<<output.pelvis.radio.channel[RadioButtons::SE]<<"\n";
+        std::cout<<"SF="<<output.pelvis.radio.channel[RadioButtons::SF]<<"\n";
+        std::cout<<"SG="<<output.pelvis.radio.channel[RadioButtons::SG]<<"\n";
+        std::cout<<"SH="<<output.pelvis.radio.channel[RadioButtons::SH]<<"\n";
 
         cassie_slrt_data_t slrt_data;   
         memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));        
@@ -653,6 +694,8 @@ void CassiePlugin::safetyController(){
         cassieUserIn_.torque[i] += -2*u_cont_alpha_[i]*(1 - 1/(1 + std::exp(-u_cont_beta_*(slrt_data_prev_.t - u_cont_t0_))));
     }
 }
+
+
 
 // Register plugin with Gazebo
 GZ_REGISTER_MODEL_PLUGIN(CassiePlugin)

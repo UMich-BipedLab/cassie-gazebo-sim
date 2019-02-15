@@ -23,7 +23,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/../../../matlab/Cassie_Model/gen/kin/eigen/include/",
 )
 
-add_library(cassie_plugin SHARED src/CassiePlugin.cpp src/udp.c ${src_files})
+add_library(cassie_plugin SHARED src/CassiePlugin.cpp src/udp.c src/KeyboardInput.cpp ${src_files})
 include_directories(include)
 target_link_libraries(cassie_plugin ${GAZEBO_LIBRARIES} ${CMAKE_SOURCE_DIR}/libagilitycassie.a)
 

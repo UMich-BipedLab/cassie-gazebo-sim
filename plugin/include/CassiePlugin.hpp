@@ -17,6 +17,8 @@
 #ifndef CASSIEPLUGIN
 #define CASSIEPLUGIN
 
+
+
 #include <array>
 #include <functional>
 #include <gazebo/gazebo.hh>
@@ -29,8 +31,12 @@
 #include "Ce_cassie.h"
 #include "Ge_cassie.h"
 
+
+
 #include "cassie_core_sim.h"
 #include "udp.h"
+
+#include "KeyboardInput.hpp"
 
 #define RECVLEN (PACKET_HEADER_LEN + CASSIE_LINUX_DATA_T_PACKED_LEN)
 #define SENDLEN (PACKET_HEADER_LEN + CASSIE_SLRT_DATA_T_PACKED_LEN)
@@ -47,6 +53,11 @@ enum RadioButtons { LV, LH, RV, RH, S1, S2, LS, RS, SA, SB, SC, SD, SE, SF, SG, 
  * Gazebo to load the plugin and communicate over UDP
  */
 class CassiePlugin : public gazebo::ModelPlugin {
+    // Keyboard input parameter
+    // static struct termios oldt;
+    
+
+    KeyboardInput keyboard_;
 
     // Event pointer
     gazebo::event::ConnectionPtr updateConnectionPtr_;
@@ -239,6 +250,8 @@ class CassiePlugin : public gazebo::ModelPlugin {
      * @brief safetyController modifies torques to maintain safety
      */
     void safetyController();
+
+
 
 public:
     /**
