@@ -17,7 +17,8 @@
 <?xml version="1.0" ?>
 <sdf version="1.6">
   <world name="default">
-    <physics type="ode">
+    <physics type="bullet">
+      
       <max_step_size>0.0005</max_step_size>
       <real_time_update_rate>2000</real_time_update_rate>
     </physics>

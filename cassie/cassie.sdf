@@ -1681,6 +1681,5 @@
     <!-- Attach the plugin to this model -->
     <plugin filename="libcassie_plugin.so" name="CassiePlugin">
     </plugin>
-
 </model>
 </sdf>

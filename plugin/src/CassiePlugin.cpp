@@ -181,7 +181,7 @@ double CassiePlugin::setMotor(gazebo::physics::JointPtr outjoint, double u,
     // Compute output-side torque
     double tau = ratio * copysign(fmin(fabs(u / ratio), tlim), u);
     outjoint->SetForce(0, tau);
-
+    
     // Return limited output-side torque
     return tau;
 }
@@ -287,7 +287,7 @@ void CassiePlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
     this->updateRate_ = 2000;
     this->updatePeriod_ = 1.0 / this->updateRate_;
     lastUpdateTime_ = this->worldPtr_->SimTime();
-
+    // std::cout<<"update period: "<<this->updatePeriod_<<std::endl;
     // Open UDP socket
     sock_ = udp_init_host("0.0.0.0", "25000");
 
@@ -295,7 +295,7 @@ void CassiePlugin::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
     this->updateConnectionPtr_ = gazebo::event::Events::ConnectWorldUpdateBegin(
         std::bind(&CassiePlugin::onUpdate, this));
 
-    // Start thread
+    // Start thread for keyboard input
     std::cout<<"start\n";
     std::thread inthread(&KeyboardInput::getInput, &keyboard_);
     inthread.detach();
@@ -317,8 +317,8 @@ void CassiePlugin::Reset()
     x_joint->SetUpperLimit(0,0); 
     y_joint->SetLowerLimit(0,0); 
     y_joint->SetUpperLimit(0,0);
-    z_joint->SetLowerLimit(0,0.2); 
-    z_joint->SetUpperLimit(0,0.2);  
+    z_joint->SetLowerLimit(0,0.0); 
+    z_joint->SetUpperLimit(0,0.0);  
     yaw_joint->SetLowerLimit(0,0); 
     yaw_joint->SetUpperLimit(0,0); 
     pitch_joint->SetLowerLimit(0,0); 
@@ -371,17 +371,18 @@ void CassiePlugin::onUpdate()
     
     if (runSim_) {
         // // Slowly lower and detach robot for easy initialization
-        // const double LOWER_TIME = 1.0;
-        // const double DETACH_TIME = 3.0;
-        // if (static_joint_attached_) {
-        //     if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
-        //         // Lower pelvis 1 seconds after receiving data
-        //         lowerPelvis();
-        //     } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
-        //         // Detatch pelvis 5 seconds after receiving data
-        //         detachPelvis();
-        //     }
-        // }
+         const double LOWER_TIME = 2.0;
+         const double DETACH_TIME =3.0;
+         if (static_joint_attached_) {
+             if ((currentTime - firstPacketTime_).Double() > LOWER_TIME && (currentTime - firstPacketTime_).Double() < DETACH_TIME) {
+                 // Lower pelvis 1 seconds after receiving data
+                //  lowerPelvis();
+             } else if ((currentTime - firstPacketTime_).Double() > DETACH_TIME) {
+                 // Detatch pelvis 5 seconds after receiving data
+                //  detachPelvis();
+                
+             }
+         }
         // Call low-level controller
         lowLevelController(&linux_data);
 
@@ -412,22 +413,26 @@ void CassiePlugin::onUpdate()
         output.pelvis.radio.channel[RadioButtons::SG] = keyboard_.SG();
         output.pelvis.radio.channel[RadioButtons::SH] = keyboard_.SH();
         // print out current radio value
-        std::cout<<"LV="<<output.pelvis.radio.channel[RadioButtons::LV]<<"\n";
-        std::cout<<"LH="<<output.pelvis.radio.channel[RadioButtons::LH]<<"\n";
-        std::cout<<"RV="<<output.pelvis.radio.channel[RadioButtons::RV]<<"\n";
-        std::cout<<"RH="<<output.pelvis.radio.channel[RadioButtons::RH]<<"\n";
-        std::cout<<"S1="<<output.pelvis.radio.channel[RadioButtons::S1]<<"\n";
-        std::cout<<"S2="<<output.pelvis.radio.channel[RadioButtons::S2]<<"\n";
-        std::cout<<"LS="<<output.pelvis.radio.channel[RadioButtons::LS]<<"\n";
-        std::cout<<"RS="<<output.pelvis.radio.channel[RadioButtons::RS]<<"\n";
-        std::cout<<"SA="<<output.pelvis.radio.channel[RadioButtons::SA]<<"\n";
-        std::cout<<"SB="<<output.pelvis.radio.channel[RadioButtons::SB]<<"\n";
-        std::cout<<"SC="<<output.pelvis.radio.channel[RadioButtons::SC]<<"\n";
-        std::cout<<"SD="<<output.pelvis.radio.channel[RadioButtons::SD]<<"\n";
-        std::cout<<"SE="<<output.pelvis.radio.channel[RadioButtons::SE]<<"\n";
-        std::cout<<"SF="<<output.pelvis.radio.channel[RadioButtons::SF]<<"\n";
-        std::cout<<"SG="<<output.pelvis.radio.channel[RadioButtons::SG]<<"\n";
-        std::cout<<"SH="<<output.pelvis.radio.channel[RadioButtons::SH]<<"\n";
+        // std::cout<<"LV="<<output.pelvis.radio.channel[RadioButtons::LV]<<"\n";
+        // std::cout<<"LH="<<output.pelvis.radio.channel[RadioButtons::LH]<<"\n";
+        // std::cout<<"RV="<<output.pelvis.radio.channel[RadioButtons::RV]<<"\n";
+        // std::cout<<"RH="<<output.pelvis.radio.channel[RadioButtons::RH]<<"\n";
+        // std::cout<<"S1="<<output.pelvis.radio.channel[RadioButtons::S1]<<"\n";
+        // std::cout<<"S2="<<output.pelvis.radio.channel[RadioButtons::S2]<<"\n";
+        // std::cout<<"LS="<<output.pelvis.radio.channel[RadioButtons::LS]<<"\n";
+        // std::cout<<"RS="<<output.pelvis.radio.channel[RadioButtons::RS]<<"\n";
+        // std::cout<<"SA="<<output.pelvis.radio.channel[RadioButtons::SA]<<"\n";
+        // std::cout<<"SB="<<output.pelvis.radio.channel[RadioButtons::SB]<<"\n";
+        // std::cout<<"SC="<<output.pelvis.radio.channel[RadioButtons::SC]<<"\n";
+        // std::cout<<"SD="<<output.pelvis.radio.channel[RadioButtons::SD]<<"\n";
+        // std::cout<<"SE="<<output.pelvis.radio.channel[RadioButtons::SE]<<"\n";
+        // std::cout<<"SF="<<output.pelvis.radio.channel[RadioButtons::SF]<<"\n";
+        // std::cout<<"SG="<<output.pelvis.radio.channel[RadioButtons::SG]<<"\n";
+        // std::cout<<"SH="<<output.pelvis.radio.channel[RadioButtons::SH]<<"\n";
+
+        movePelvis("x",output.pelvis.radio.channel[RadioButtons::LV]);
+        movePelvis("y",output.pelvis.radio.channel[RadioButtons::LH]);
+        rotatePelvis("yaw",output.pelvis.radio.channel[RadioButtons::RH]);
 
         cassie_slrt_data_t slrt_data;   
         memset(&slrt_data, 0, sizeof (cassie_slrt_data_t));        
@@ -463,6 +468,10 @@ void CassiePlugin::updateCassieOut()
     auto pose = pelvisPtr_->WorldPose();
 
     auto worldAccel = pelvisPtr_->WorldLinearAccel() - worldPtr_->Gravity();
+
+    // auto imuAccel = imuPtr_->LinearAcceleration(true) - worldPtr_->Gravity();
+    // auto imuPose = imuPtr_->Pose();
+
     auto worldGyro = pelvisPtr_->WorldAngularVel();
     auto worldMag = ignition::math::Vector3d(0, 1, 0);
 
@@ -471,6 +480,11 @@ void CassiePlugin::updateCassieOut()
     auto gyro = rot.RotateVector(worldGyro);
     auto mag = rot.RotateVector(worldMag);
 
+    auto worldLinearVel = pelvisPtr_->WorldLinearVel();
+    auto worldPose = pelvisPtr_->WorldPose();
+    // std::cout << "worldLinearVel: " << worldLinearVel[0] << ", " << worldLinearVel[1] << ", " << worldLinearVel[2] << "\n";
+    // std::cout << "worldPose: " << worldPos[0] << ", " << worldPos[1] << ", " << worldPos[2] << "\n";
+    // std::cout << "worldPose " << worldPose << std::endl;
     // Set computed orientation
     cassieOut_.pelvis.vectorNav.orientation[0] = pose.Rot().W();
     cassieOut_.pelvis.vectorNav.orientation[1] = pose.Rot().X();
@@ -510,7 +524,9 @@ void CassiePlugin::applyTorques(const cassie_in_t *cassieIn)
         driveOut_[i]->torque = setMotor(motor_[i], torque[i], sto,
                                         kGearRatio_[i], kMaxTorque_[i],
                                         kMaxSpeed_[i]);
+        // std::cout<<","<<torque[i];
     }
+    // std::cout<<std::endl;
 }
 
 
@@ -533,13 +549,32 @@ void CassiePlugin::detachPelvis() {
     pitch_joint->SetLowerLimit(0,-1000); 
     pitch_joint->SetUpperLimit(0,1000); 
     static_joint_attached_ = false;
+    // std::cout<<"set freeeeee:"<<z_joint->LowerLimit()<<std::endl;
 }
 
 
 void CassiePlugin::lowerPelvis() {   
     // Lower by small amount each timestep
     gazebo::physics::JointPtr joint = this->worldPtr_->ModelByName("cassie")->GetJoint("z");
+    // std::cout<<"before:"<<joint->LowerLimit()<<std::endl;
     joint->SetLowerLimit(0,joint->LowerLimit()-0.0005); 
+    // std::cout<<"after:"<<joint->LowerLimit()<<std::endl;
+}
+
+void CassiePlugin::movePelvis(char* axis, int ctr_val){
+    float STRIDE = 0.0001;
+    // Lower by small amount each timestep
+    gazebo::physics::JointPtr joint = this->worldPtr_->ModelByName("cassie")->GetJoint(axis);
+    joint->SetUpperLimit(0,joint->UpperLimit()+STRIDE*ctr_val); 
+    joint->SetLowerLimit(0,joint->LowerLimit()+STRIDE*ctr_val); 
+    // std::cout<<"after:"<<joint->LowerLimit()<<std::endl;
+}
+
+void CassiePlugin::rotatePelvis(char* axis, int ctr_val){
+    float STRIDE = 0.0001;
+    gazebo::physics::JointPtr joint = this->worldPtr_->ModelByName("cassie")->GetJoint(axis);
+    joint->SetUpperLimit(0,joint->UpperLimit()+STRIDE*ctr_val); 
+    joint->SetLowerLimit(0,joint->LowerLimit()+STRIDE*ctr_val); 
 }
 
 

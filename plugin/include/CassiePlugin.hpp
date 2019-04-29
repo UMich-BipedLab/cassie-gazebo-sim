@@ -30,7 +30,7 @@
 #include "De_cassie.h"
 #include "Ce_cassie.h"
 #include "Ge_cassie.h"
-
+// #include <gazebo/sensors/sensors.hh>
 
 
 #include "cassie_core_sim.h"
@@ -111,6 +111,9 @@ class CassiePlugin : public gazebo::ModelPlugin {
 
     // Pelvis pointer
     gazebo::physics::LinkPtr pelvisPtr_;
+
+    // imu pointer
+    // gazebo::sensors::ImuSensorPtr imuPtr_;
 
     // Flag that specifies if the static joint is attached
     bool static_joint_attached_ = true;
@@ -240,6 +243,16 @@ class CassiePlugin : public gazebo::ModelPlugin {
      * @brief lowerPelvis lowers the pelvis from the world
      */
     void lowerPelvis();
+
+    /**
+     * @brief movePlevis moves the pelvis from the world
+     */
+    void movePelvis(char* axis, int ctr_val);
+
+    /**
+     * @brief rotatePelvis rotates the pelvis from the world
+     */
+    void rotatePelvis(char* axis, int ctr_val);
 
     /**
      * @brief lowLevelController low-level controller (several options)

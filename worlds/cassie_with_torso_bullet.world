@@ -16,21 +16,20 @@
 
 <?xml version="1.0" ?>
 <sdf version="1.6">
-  <world name="cassie_world">
-    <physics type="ode">
-      <ode>
+  <world name="default">
+    <physics type="bullet">
+      <bullet>
         <solver>
           <iters>1000</iters>
         </solver>
         <constraints>
-          <erp>0.2</erp>
+          <erp>0.01</erp>
           <contact_surface_layer>0.01</contact_surface_layer>
         </constraints>
-      </ode>
+      </bullet>
       <max_step_size>0.0005</max_step_size>
       <real_time_update_rate>2000</real_time_update_rate>
     </physics>
-
     <include>
       <uri>model://sun</uri>
     </include>
@@ -38,8 +37,7 @@
       <uri>model://ground_plane</uri>
     </include>
     <include>
-      <uri>model://cassie</uri>
+      <uri>model://cassie_with_torso</uri>
     </include>
   </world>
-
 </sdf>
